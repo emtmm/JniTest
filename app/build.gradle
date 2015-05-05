@@ -1,0 +1,71 @@
+import org.apache.tools.ant.taskdefs.condition.Os
+
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 22
+    buildToolsVersion "22.0.1"
+
+    defaultConfig {
+        applicationId "com.emtmm.jnitest"
+        minSdkVersion 22
+        targetSdkVersion 22
+        versionCode 1
+        versionName "1.0"
+
+    }
+
+    sourceSets.main {
+        jni.srcDirs = [] //Disable automatic ndk-build call
+    }
+
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    task ndkBuild(type: Exec) {
+
+
+        if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+            def ndkDir = System.getenv("ANDROID_NDK_ROOT")
+
+
+            commandLine 'cmd', '/C', "$ndkDir/ndk-build",
+                    'NDK_PROJECT_PATH=build',
+                    'APP_BUILD_SCRIPT=src/main/jni/Android.mk',
+                    'NDK_APPLICATION_MK=src/main/jni/Application.mk',
+                    'NDK_APP_LIBS_OUT = src/main/jnilibs'
+
+        } else {
+
+            def ndkDir = System.getenv("NDKROOT")
+            commandLine "$ndkDir/ndk-build",
+                    'NDK_PROJECT_PATH=build',
+                    'APP_BUILD_SCRIPT=src/main/jni/Android.mk',
+                    'NDK_APPLICATION_MK=src/main/jni/Application.mk',
+                    'NDK_APP_LIBS_OUT = src/main/jnilibs'
+
+
+        }
+    }
+    tasks.withType(JavaCompile) {
+        compileTask -> compileTask.dependsOn ndkBuild
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile 'com.android.support:appcompat-v7:22.1.1'
+    compile 'com.android.support:support-v4:22.1.1'
+    compile 'com.amazonaws:aws-android-sdk-core:2.2.0'
+    compile 'com.amazonaws:aws-android-sdk-s3:2.2.0'
+    compile files('src/main/libs/android-1.2.2675.jar')
+    compile files('src/main/libs/audible-magic-plugin-1.2.2675.jar')
+    compile files('src/main/libs/domain-1.2.2675.jar')
+    compile files('src/main/libs/netty-all-4.0.15.Final.jar')
+    compile files('src/main/libs/wms-transport-wowz.jar')
+}
