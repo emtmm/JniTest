@@ -39,14 +39,9 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.ImageButton;
 import android.widget.ProgressBar;
-import android.widget.Spinner;
-import android.widget.TextView;
 
+import com.emtmm.jnitest.controls.TranscodeSurfaceView;
 import com.intel.inde.mp.AudioFormat;
 import com.intel.inde.mp.IProgressListener;
 import com.intel.inde.mp.MediaComposer;
@@ -56,11 +51,9 @@ import com.intel.inde.mp.android.AndroidMediaObjectFactory;
 import com.intel.inde.mp.android.AudioFormatAndroid;
 import com.intel.inde.mp.android.VideoFormatAndroid;
 import com.intel.inde.mp.domain.ISurfaceWrapper;
-import com.intel.inde.mp.samples.controls.TranscodeSurfaceView;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.concurrent.TimeUnit;
 
 public class ComposerTranscodeCoreActivity extends ActivityWithTimeline implements SurfaceHolder.Callback {
 
@@ -76,12 +69,6 @@ public class ComposerTranscodeCoreActivity extends ActivityWithTimeline implemen
 
     protected ProgressBar progressBar;
 
-    protected TextView pathInfo;
-    protected TextView durationInfo;
-    protected TextView effectDetails;
-
-    protected TextView transcodeInfoView;
-
     ///////////////////////////////////////////////////////////////////////////
 
     protected AudioFormat audioFormat = null;
@@ -90,14 +77,11 @@ public class ComposerTranscodeCoreActivity extends ActivityWithTimeline implemen
     // Transcode parameters
 
     // Video
-    protected int videoWidthOut;
-    protected int videoHeightOut;
+    protected int videoWidthOut = 640;
+    protected int videoHeightOut = 480;
 
     protected int videoWidthIn = 640;
     protected int videoHeightIn = 480;
-
-    protected Spinner frameSizeSpinner;
-    protected Spinner videoBitRateSpinner;
 
     protected final String videoMimeType = "video/avc";
     protected int videoBitRateInKBytes = 5000;
@@ -110,9 +94,6 @@ public class ComposerTranscodeCoreActivity extends ActivityWithTimeline implemen
     protected final int audioChannelCount = 2;
 
     protected final int audioBitRate = 96 * 1024;
-    protected Button buttonStop;
-
-    protected Button buttonStart;
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -131,8 +112,6 @@ public class ComposerTranscodeCoreActivity extends ActivityWithTimeline implemen
                     @Override
                     public void run() {
                         progressBar.setProgress(0);
-                        frameSizeSpinner.setEnabled(false);
-                        videoBitRateSpinner.setEnabled(false);
                         updateUI(true);
                     }
                 });
@@ -209,16 +188,6 @@ public class ComposerTranscodeCoreActivity extends ActivityWithTimeline implemen
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.composer_transcode_core_activity);
 
-        buttonStart = (Button) findViewById(R.id.buttonStart);
-        buttonStop = (Button) findViewById(R.id.buttonStop);
-
-        pathInfo = (TextView) findViewById(R.id.pathInfo);
-        durationInfo = (TextView) findViewById(R.id.durationInfo);
-        effectDetails = (TextView) findViewById(R.id.effectDetails);
-
-        initVideoSpinners();
-
-        transcodeInfoView = (TextView) findViewById(R.id.transcodeInfo);
 
         progressBar = (ProgressBar) findViewById(R.id.progressBar);
         progressBar.setMax(100);
@@ -235,9 +204,10 @@ public class ComposerTranscodeCoreActivity extends ActivityWithTimeline implemen
         setupUI();
         printFileInfo();
 
-        transcodeSurfaceView.setImageSize(videoWidthIn, videoHeightIn);
+        transcodeSurfaceView.setImageSize(videoWidthOut, videoHeightOut);
 
         updateUI(false);
+        startTranscode();
     }
 
     @Override
@@ -250,57 +220,21 @@ public class ComposerTranscodeCoreActivity extends ActivityWithTimeline implemen
     }
 
     protected void setupUI() {
-        buttonStart.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startTranscode();
-            }
-        });
-
-        buttonStop.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                stopTranscode();
-            }
-        });
+//        buttonStart.setOnClickListener(new OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                startTranscode();
+//            }
+//        });
+//
+//        buttonStop.setOnClickListener(new OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                stopTranscode();
+//            }
+//        });
     }
 
-    protected void initVideoSpinners() {
-        ArrayAdapter<CharSequence> adapter;
-
-        // Video parameters spinners
-        frameSizeSpinner = (Spinner) findViewById(R.id.frameSize_spinner);
-        adapter = ArrayAdapter.createFromResource(this, R.array.frame_size_values, android.R.layout.simple_spinner_item);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        frameSizeSpinner.setAdapter(adapter);
-        frameSizeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
-                String[] frameSizeContainer = frameSizeSpinner.getSelectedItem().toString().split("x", 2);
-                videoWidthOut = Integer.valueOf(frameSizeContainer[0].trim());
-                videoHeightOut = Integer.valueOf(frameSizeContainer[1].trim());
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> adapterView) {
-            }
-        });
-
-        videoBitRateSpinner = (Spinner) findViewById(R.id.videoBitRate_spinner);
-        adapter = ArrayAdapter.createFromResource(this, R.array.video_bit_rate_values, android.R.layout.simple_spinner_item);
-        videoBitRateSpinner.setAdapter(adapter);
-        videoBitRateSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
-                videoBitRateInKBytes = Integer.valueOf(videoBitRateSpinner.getSelectedItem().toString());
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> adapterView) {
-            }
-        });
-
-    }
     ///////////////////////////////////////////////////////////////////////////
 
     protected void getActivityInputs() {
@@ -435,8 +369,6 @@ public class ComposerTranscodeCoreActivity extends ActivityWithTimeline implemen
 
         } catch (Exception e) {
 
-            buttonStart.setEnabled(false);
-
             String message = (e.getMessage() != null) ? e.getMessage() : e.toString();
 
             showMessageBox(message, new DialogInterface.OnClickListener() {
@@ -461,8 +393,6 @@ public class ComposerTranscodeCoreActivity extends ActivityWithTimeline implemen
             public void onClick(DialogInterface dialog, int which) {
 
                 progressBar.setVisibility(View.INVISIBLE);
-                findViewById(R.id.buttonStart).setVisibility(View.GONE);
-                findViewById(R.id.buttonStop).setVisibility(View.GONE);
 
                 OnClickListener l = new OnClickListener() {
 
@@ -472,9 +402,6 @@ public class ComposerTranscodeCoreActivity extends ActivityWithTimeline implemen
                     }
                 };
 
-                ImageButton ib = (ImageButton) findViewById(R.id.imageButtonPlay);
-                ib.setVisibility(View.VISIBLE);
-                ib.setOnClickListener(l);
             }
         };
         showMessageBox(message, listener);
@@ -492,9 +419,6 @@ public class ComposerTranscodeCoreActivity extends ActivityWithTimeline implemen
     }
 
     private void updateUI(boolean inProgress) {
-        buttonStart.setEnabled(!inProgress);
-        buttonStop.setEnabled(inProgress);
-
         if (inProgress) {
             progressBar.setVisibility(View.VISIBLE);
         } else {
@@ -505,7 +429,7 @@ public class ComposerTranscodeCoreActivity extends ActivityWithTimeline implemen
     ////////////////////////////////////////////////////////////////////////////    
 
     protected void printPaths() {
-        pathInfo.setText(String.format("srcMediaFileName = %s\ndstMediaPath = %s\n", srcMediaName1, dstMediaPath));
+//        pathInfo.setText(String.format("srcMediaFileName = %s\ndstMediaPath = %s\n", srcMediaName1, dstMediaPath));
     }
 
     protected void getDstDuration() {
@@ -513,7 +437,7 @@ public class ComposerTranscodeCoreActivity extends ActivityWithTimeline implemen
 
     protected void printDuration() {
         getDstDuration();
-        durationInfo.setText(String.format("Duration = %d sec", TimeUnit.MICROSECONDS.toSeconds(duration)));
+//        durationInfo.setText(String.format("Duration = %d sec", TimeUnit.MICROSECONDS.toSeconds(duration)));
     }
 
     protected void printEffectDetails() {

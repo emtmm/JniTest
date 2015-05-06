@@ -29,12 +29,14 @@
 
 package com.emtmm.jnitest;
 
+import android.media.MediaMetadataRetriever;
 import android.os.Bundle;
-import android.widget.TextView;
 
+import com.emtmm.jnitest.controls.RotateEffect;
 import com.intel.inde.mp.MediaComposer;
 import com.intel.inde.mp.MediaFile;
 import com.intel.inde.mp.Uri;
+import com.intel.inde.mp.android.graphics.EglUtil;
 import com.intel.inde.mp.domain.Pair;
 
 import java.io.IOException;
@@ -43,11 +45,12 @@ public class ComposerCutCoreActivity extends ComposerTranscodeCoreActivity {
 
     private long segmentFrom = 0;
     private long segmentTo = 0;
+    private Bundle b;
 
     @Override
     protected void getActivityInputs() {
 
-        Bundle b = getIntent().getExtras();
+        b = getIntent().getExtras();
         srcMediaName1 = b.getString("srcMediaName1");
         dstMediaPath = b.getString("dstMediaPath");
         mediaUri1 = new Uri(b.getString("srcUri1"));
@@ -64,18 +67,31 @@ public class ComposerCutCoreActivity extends ComposerTranscodeCoreActivity {
         configureVideoEncoder(mediaComposer, videoWidthOut, videoHeightOut);
         configureAudioEncoder(mediaComposer);
 
+        rotateVideo(mediaComposer);
+
         ///////////////////////////
 
         MediaFile mediaFile = mediaComposer.getSourceFiles().get(0);
         mediaFile.addSegment(new Pair<Long, Long>(segmentFrom, segmentTo));
     }
 
+    private void rotateVideo(MediaComposer mediaComposer) {
+        MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+        retriever.setDataSource(getApplicationContext(), android.net.Uri.parse(b.getString("srcUri1")));
+        String extractMetadata = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION);
+        int angle = Integer.parseInt(extractMetadata);
+
+        RotateEffect effect = new RotateEffect(angle, EglUtil.getInstance());
+        effect.setSegment(new Pair<Long, Long>(0l, 0l));  // Apply to all stream
+        mediaComposer.addVideoEffect(effect);
+    }
+
     @Override
     protected void printDuration() {
 
-    	TextView v = (TextView)findViewById(R.id.durationInfo);
-        v.setText(String.format("duration = %.1f sec\n", (float) (segmentTo - segmentFrom) / 1e6));
-        v.append(String.format("from = %.1f sec\nto = %.1f sec\n", (float) segmentFrom / 1e6, (float) segmentTo / 1e6));
+//    	TextView v = (TextView)findViewById(R.id.durationInfo);
+//        v.setText(String.format("duration = %.1f sec\n", (float) (segmentTo - segmentFrom) / 1e6));
+//        v.append(String.format("from = %.1f sec\nto = %.1f sec\n", (float) segmentFrom / 1e6, (float) segmentTo / 1e6));
     }
 }
 

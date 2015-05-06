@@ -7,7 +7,7 @@
     android:weightSum="4"
     android:keepScreenOn="true">
 
-    <com.intel.inde.mp.samples.controls.TimelineItem
+    <com.emtmm.jnitest.controls.TimelineItem
         android:id="@+id/timelineItem"
         android:layout_height="0dp"
         android:layout_weight="3"
@@ -27,6 +27,25 @@
             android:text="Cut"
             android:layout_gravity="center_vertical|center_horizontal">
         </Button>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/linearLayout"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="3"
+        android:orientation="vertical"
+        android:layout_margin="8dp" >
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="invisible"/>
+
+
 
     </LinearLayout>
 
