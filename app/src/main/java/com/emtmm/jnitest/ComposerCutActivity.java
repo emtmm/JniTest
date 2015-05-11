@@ -29,22 +29,34 @@
 
 package com.emtmm.jnitest;
 
-import android.content.Intent;
+import android.content.DialogInterface;
+import android.media.MediaCodecInfo;
+import android.media.MediaMetadataRetriever;
 import android.os.Bundle;
-import android.view.SurfaceHolder;
+import android.os.PersistableBundle;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 
+import com.emtmm.jnitest.controls.RotateEffect;
 import com.emtmm.jnitest.controls.TimelineItem;
 import com.intel.inde.mp.AudioFormat;
 import com.intel.inde.mp.IProgressListener;
 import com.intel.inde.mp.MediaComposer;
+import com.intel.inde.mp.MediaFile;
 import com.intel.inde.mp.MediaFileInfo;
 import com.intel.inde.mp.VideoFormat;
 import com.intel.inde.mp.android.AndroidMediaObjectFactory;
+import com.intel.inde.mp.android.AudioFormatAndroid;
+import com.intel.inde.mp.android.VideoFormatAndroid;
+import com.intel.inde.mp.android.graphics.EglUtil;
+import com.intel.inde.mp.domain.Pair;
+
+import java.io.IOException;
 
 
 public class ComposerCutActivity extends ActivityWithTimeline implements View.OnClickListener {
@@ -55,12 +67,15 @@ public class ComposerCutActivity extends ActivityWithTimeline implements View.On
     protected String dstMediaPath = null;
     protected com.intel.inde.mp.Uri mediaUri1;
     protected com.intel.inde.mp.Uri mediaUri2;
+    private long segmentFrom;
+    private long segmentTo;
 
     protected MediaFileInfo mediaFileInfo = null;
 
     protected long duration = 0;
 
     protected ProgressBar progressBar;
+    private LinearLayout progressLayout;
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -95,6 +110,10 @@ public class ComposerCutActivity extends ActivityWithTimeline implements View.On
     protected MediaComposer mediaComposer;
 
     private boolean isStopped = false;
+
+    protected AndroidMediaObjectFactory factory;
+
+
 
     public IProgressListener progressListener = new IProgressListener() {
         @Override
@@ -170,30 +189,39 @@ public class ComposerCutActivity extends ActivityWithTimeline implements View.On
         }
     };
 
-    protected AndroidMediaObjectFactory factory;
+
 
     /////////////////////////////////////////////////////////////////////////
 
-    public void onCreate(Bundle icicle) {
-        super.onCreate(icicle);
-
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
         setContentView(R.layout.composer_cut_activity);
 
-        progressBar = (ProgressBar) findViewById(R.id.progressBar);
-        progressBar.setMax(100);
-
-        getActivityInputs();
-
-        getFileInfo();
         setupUI();
 
         updateUI(false);
-        startTranscode();
+
 
         init();
+    }
+
+    private void updateUI(boolean inProgress) {
+        if (inProgress) {
+            progressLayout.setVisibility(View.VISIBLE);
+        } else {
+            progressLayout.setVisibility(View.INVISIBLE);
+        }
+    }
+
+    private void setupUI() {
+        progressLayout = (LinearLayout) findViewById(R.id.progress_layout);
+        progressBar = (ProgressBar) findViewById(R.id.progressBar);
+        progressBar.setMax(100);
+
     }
 
     private void init() {
@@ -201,7 +229,7 @@ public class ComposerCutActivity extends ActivityWithTimeline implements View.On
         mItem.setEventsListener(this);
         mItem.enableSegmentPicker(true);
 
-        ((Button) findViewById(R.id.action)).setOnClickListener(this);
+        ((TextView) findViewById(R.id.action)).setOnClickListener(this);
 
         mItem.onOpen();
     }
@@ -217,25 +245,164 @@ public class ComposerCutActivity extends ActivityWithTimeline implements View.On
 
         mItem.stopVideoView();
 
-        int segmentFrom = mItem.getSegmentFrom();
-        int segmentTo = mItem.getSegmentTo();
 
-        Intent intent = new Intent();
-        intent.setClass(this, ComposerCutCoreActivity.class);
 
-        Bundle b = new Bundle();
-        b.putString("srcMediaName1", mItem.getMediaFileName());
-        intent.putExtras(b);
-        b.putString("dstMediaPath", mItem.genDstPath(mItem.getMediaFileName(), "segment"));
-        intent.putExtras(b);
-        b.putLong("segmentFrom", segmentFrom);
-        intent.putExtras(b);
-        b.putLong("segmentTo", segmentTo);
-        intent.putExtras(b);
-        b.putString("srcUri1", mItem.getUri().getString());
-        intent.putExtras(b);
 
-        startActivity(intent);
+        getActivityInputs();
+
+        getFileInfo();
+
+        startTranscode();
+
+    }
+
+    protected void getActivityInputs() {
+
+        srcMediaName1 = mItem.getMediaFileName();
+        dstMediaPath = mItem.genDstPath(mItem.getMediaFileName(), "segment");
+        mediaUri1 = new com.intel.inde.mp.Uri(mItem.getUri().getString());
+
+        segmentFrom = mItem.getSegmentFrom();
+        segmentTo = mItem.getSegmentTo();
+    }
+
+    /////////////////////////////////////////////////////////////////////////
+
+    protected void getFileInfo() {
+        try {
+            mediaFileInfo = new MediaFileInfo(new AndroidMediaObjectFactory(getApplicationContext()));
+            mediaFileInfo.setUri(mediaUri1);
+
+            duration = mediaFileInfo.getDurationInMicroSec();
+
+            audioFormat = (AudioFormat) mediaFileInfo.getAudioFormat();
+            if (audioFormat == null) {
+                showMessageBox("Audio format info unavailable", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                    }
+                });
+            }
+
+            videoFormat = (VideoFormat) mediaFileInfo.getVideoFormat();
+            if (videoFormat == null) {
+                showMessageBox("Video format info unavailable", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                    }
+                });
+            } else {
+                videoWidthIn = videoFormat.getVideoFrameSize().width();
+                videoHeightIn = videoFormat.getVideoFrameSize().height();
+            }
+        } catch (Exception e) {
+            String message = (e.getMessage() != null) ? e.getMessage() : e.toString();
+
+            showMessageBox(message, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                }
+            });
+        }
+    }
+
+    public void startTranscode() {
+
+        try {
+            transcode();
+
+        } catch (Exception e) {
+
+            String message = (e.getMessage() != null) ? e.getMessage() : e.toString();
+
+            showMessageBox(message, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                }
+            });
+        }
+    }
+
+    protected void transcode() throws Exception {
+
+        factory = new AndroidMediaObjectFactory(getApplicationContext());
+        mediaComposer = new MediaComposer(factory, progressListener);
+        setTranscodeParameters(mediaComposer);
+        mediaComposer.start();
+    }
+
+    protected void setTranscodeParameters(MediaComposer mediaComposer) throws IOException {
+
+        mediaComposer.addSourceFile(mediaUri1);
+        mediaComposer.setTargetFile(dstMediaPath);
+
+        configureVideoEncoder(mediaComposer, videoWidthOut, videoHeightOut);
+        configureAudioEncoder(mediaComposer);
+
+        rotateVideo(mediaComposer);
+
+        ///////////////////////////
+
+        MediaFile mediaFile = mediaComposer.getSourceFiles().get(0);
+        mediaFile.addSegment(new Pair<Long, Long>(segmentFrom, segmentTo));
+    }
+
+    private void rotateVideo(MediaComposer mediaComposer) {
+        MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+        retriever.setDataSource(getApplicationContext(), android.net.Uri.parse(mItem.getUri().getString()));
+        String extractMetadata = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION);
+        int angle = Integer.parseInt(extractMetadata);
+
+        RotateEffect effect = new RotateEffect(angle, EglUtil.getInstance());
+        effect.setSegment(new Pair<Long, Long>(0l, 0l));  // Apply to all stream
+        mediaComposer.addVideoEffect(effect);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+
+    protected void configureVideoEncoder(MediaComposer mediaComposer, int width, int height) {
+
+        VideoFormatAndroid videoFormat = new VideoFormatAndroid(videoMimeType, width, height);
+
+        videoFormat.setVideoBitRateInKBytes(videoBitRateInKBytes);
+        videoFormat.setVideoFrameRate(videoFrameRate);
+        videoFormat.setVideoIFrameInterval(videoIFrameInterval);
+
+        mediaComposer.setTargetVideoFormat(videoFormat);
+    }
+
+    protected void configureAudioEncoder(MediaComposer mediaComposer) {
+
+        AudioFormatAndroid audioFormat = new AudioFormatAndroid(audioMimeType, audioSampleRate, audioChannelCount);
+
+        audioFormat.setAudioBitrateInBytes(audioBitRate);
+        audioFormat.setAudioProfile(MediaCodecInfo.CodecProfileLevel.AACObjectLC);
+
+        mediaComposer.setTargetAudioFormat(audioFormat);
+    }
+
+    private void reportTranscodeDone() {
+
+        String message = "Transcoding finished.";
+
+        DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener() {
+
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+
+                progressLayout.setVisibility(View.INVISIBLE);
+
+//                View.OnClickListener l = new View.OnClickListener() {
+//
+//                    @Override
+//                    public void onClick(View v) {
+//                        playResult();
+//                    }
+//                };
+
+            }
+        };
+        showMessageBox(message, listener);
     }
 
     @Override

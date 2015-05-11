@@ -35,13 +35,9 @@ import android.os.Environment;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.ImageButton;
 import android.widget.RelativeLayout;
-import android.widget.TextView;
 import android.widget.VideoView;
 
-
-import com.emtmm.jnitest.Format;
 import com.emtmm.jnitest.R;
 import com.intel.inde.mp.MediaFileInfo;
 import com.intel.inde.mp.android.AndroidMediaObjectFactory;
@@ -51,7 +47,7 @@ import java.util.concurrent.TimeUnit;
 
 public class TimelineItem extends RelativeLayout implements RangeSelector.RangeSelectorEvents {
 
-    private static final String DEFAULT_MEDIA_PACK_FOLDER = "MediaForMobile_output";
+    private static final String DEFAULT_MEDIA_PACK_FOLDER = "UssembleVideos";
 
     public void onOpen() {
         if (mEvents != null) {
@@ -178,11 +174,13 @@ public class TimelineItem extends RelativeLayout implements RangeSelector.RangeS
 
         mVideoView.setVideoURI(Uri.parse(uri.getString()));
 
-        String duration = Format.duration(mVideoDuration / 1000);
+        int duration = (int) Math.round((mVideoDuration / 1000000));
 
 
         mSegmentSelector.setStartPosition(0);
-        mSegmentSelector.setEndPosition(100);
+        mSegmentSelector.setEndPosition(duration > 15 ? 15*100/duration : 100);
+
+        mSegmentSelector.setTime(duration);
 
         showPreview(10);
     }
@@ -196,9 +194,7 @@ public class TimelineItem extends RelativeLayout implements RangeSelector.RangeS
             outputFolder.mkdirs();
         }
 
-        String dstPath = ( outputFolder.getPath() + "/" + substring + "_" + effect + ".mp4");
-                
-        return dstPath;
+        return ( outputFolder.getPath() + "/" + substring + "_" + effect + ".mp4");
     }
 
     public String genDstPath(String srcPath1, String srcPath2, String effect)
@@ -255,6 +251,7 @@ public class TimelineItem extends RelativeLayout implements RangeSelector.RangeS
 
     @Override
     public void onEndPositionChanged(int position) {
+
         showPreview(position);
     }
 
@@ -278,8 +275,7 @@ public class TimelineItem extends RelativeLayout implements RangeSelector.RangeS
     }
 
     private int percentToPosition(int percent) {
-        int position = (int) (mVideoDuration * percent / 100);
 
-        return position;
+        return (int) (mVideoDuration * percent / 100);
     }
 }

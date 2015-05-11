@@ -42,6 +42,7 @@ public class RangeSelector extends View
 {
     public static final int HandleSize = 48;
     public static final int BarHeight = 8;
+    private long time;
 
     public interface RangeSelectorEvents
     {
@@ -83,6 +84,10 @@ public class RangeSelector extends View
         super(context, attrs, defStyle);
 
         init(attrs, defStyle);
+    }
+
+    public void setTime(long time) {
+        this.time = time;
     }
 
     public void setEventsListener(RangeSelectorEvents listener) {
@@ -226,14 +231,14 @@ public class RangeSelector extends View
                     {
                         if (mHandleToMove.getId() == 0)
                         {
-                            if ((x + HandleSize * 2) > positionToX(mHandles[1].getPosition()))
+                            if ((x + getDifSize()) > positionToX(mHandles[1].getPosition()))
                             {
                                 position = -1;
                             }
                         }
                         else if (mHandleToMove.getId() == 1)
                         {
-                            if ((x - HandleSize * 2) < positionToX(mHandles[0].getPosition()))
+                            if ((x - getDifSize()) < positionToX(mHandles[0].getPosition()))
                             {
                                 position = -1;
                             }
@@ -274,6 +279,10 @@ public class RangeSelector extends View
         invalidate();
 
         return true;
+    }
+
+    private int getDifSize() {
+        return positionToX((int) (3*100/time));
     }
 
     private int positionToX(int position)
