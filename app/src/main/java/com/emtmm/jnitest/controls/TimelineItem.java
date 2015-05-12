@@ -36,8 +36,10 @@ import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.VideoView;
 
+import com.emtmm.jnitest.Format;
 import com.emtmm.jnitest.R;
 import com.intel.inde.mp.MediaFileInfo;
 import com.intel.inde.mp.android.AndroidMediaObjectFactory;
@@ -48,6 +50,8 @@ import java.util.concurrent.TimeUnit;
 public class TimelineItem extends RelativeLayout implements RangeSelector.RangeSelectorEvents {
 
     private static final String DEFAULT_MEDIA_PACK_FOLDER = "UssembleVideos";
+    private TextView mStartTime;
+    private TextView mEndTime;
 
     public void onOpen() {
         if (mEvents != null) {
@@ -178,9 +182,12 @@ public class TimelineItem extends RelativeLayout implements RangeSelector.RangeS
 
 
         mSegmentSelector.setStartPosition(0);
-        mSegmentSelector.setEndPosition(duration > 15 ? 15*100/duration : 100);
+        mSegmentSelector.setEndPosition(duration > 15 ? ((15 * 100) + RangeSelector.HandleSize) / duration : 100);
 
         mSegmentSelector.setTime(duration);
+
+        setStartTimeView();
+        setEndTimeView();
 
         showPreview(10);
     }
@@ -232,6 +239,9 @@ public class TimelineItem extends RelativeLayout implements RangeSelector.RangeS
         mSegmentSelector = (RangeSelector) findViewById(R.id.segment);
         mSegmentSelector.setEventsListener(this);
 
+        mStartTime = (TextView) findViewById(R.id.time_start);
+        mEndTime = (TextView) findViewById(R.id.time_end);
+
         mMediaInfo = new MediaFileInfo(new AndroidMediaObjectFactory(mContext));
 
         mEnableSegmentPicker = true;
@@ -246,13 +256,24 @@ public class TimelineItem extends RelativeLayout implements RangeSelector.RangeS
 
     @Override
     public void onStartPositionChanged(int position) {
+        setStartTimeView();
         showPreview(position);
     }
 
     @Override
     public void onEndPositionChanged(int position) {
-
+        setEndTimeView();
         showPreview(position);
+    }
+
+    private void setStartTimeView() {
+        String duration = Format.duration(getSegmentFrom()/1000);
+        mStartTime.setText(duration);
+    }
+
+    private void setEndTimeView() {
+        String duration = Format.duration(getSegmentTo()/1000);
+        mEndTime.setText(duration);
     }
 
     public void updateView() {
@@ -278,4 +299,5 @@ public class TimelineItem extends RelativeLayout implements RangeSelector.RangeS
 
         return (int) (mVideoDuration * percent / 100);
     }
+
 }
