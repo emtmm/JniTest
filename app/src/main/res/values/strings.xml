@@ -3,6 +3,6 @@
 
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
-    <string name="preparing_file">We are preparing the file for upload...</string>
+    <string name="preparing_file">We are preparing the file for upload…</string>
     <string name="done">Done</string>
 </resources>

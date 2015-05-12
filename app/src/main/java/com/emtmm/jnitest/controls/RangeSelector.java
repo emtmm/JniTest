@@ -232,14 +232,14 @@ public class RangeSelector extends View
                     {
                         if (mHandleToMove.getId() == 0)
                         {
-                            if ((x + getMinDifSize()) > positionToX(mHandles[1].getPosition()))
+                            if ((x + getMinDifSize()) > (positionToX(mHandles[1].getPosition()) + (HandleSize/2)))
                             {
                                 position = -1;
                             }
                         }
                         else if (mHandleToMove.getId() == 1)
                         {
-                            if ((x - getMinDifSize()) < positionToX(mHandles[0].getPosition()))
+                            if ((x - getMinDifSize()) < (positionToX(mHandles[0].getPosition()) - (HandleSize/2)))
                             {
                                 position = -1;
                             }
@@ -293,7 +293,7 @@ public class RangeSelector extends View
     }
 
     private int getMaxDifSize() {
-        return positionToX((int) (15*100/time));
+        return positionToX((int) (30*100/time));
     }
 
     private int getMinDifSize() {

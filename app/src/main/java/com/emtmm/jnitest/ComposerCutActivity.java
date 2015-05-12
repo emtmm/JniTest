@@ -29,17 +29,15 @@
 
 package com.emtmm.jnitest;
 
+import android.app.ProgressDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.media.MediaCodecInfo;
 import android.media.MediaMetadataRetriever;
 import android.os.Bundle;
-import android.os.PersistableBundle;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.Button;
-import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.emtmm.jnitest.controls.RotateEffect;
@@ -60,6 +58,9 @@ import java.io.IOException;
 
 
 public class ComposerCutActivity extends ActivityWithTimeline implements View.OnClickListener {
+    public static final int VIDEO_TRIM_INTENT = 1090;
+    public static final String VIDEO_URI = "video_uri";
+
     TimelineItem mItem;
 
     protected String srcMediaName1 = null;
@@ -73,9 +74,7 @@ public class ComposerCutActivity extends ActivityWithTimeline implements View.On
     protected MediaFileInfo mediaFileInfo = null;
 
     protected long duration = 0;
-
-    protected ProgressBar progressBar;
-    private LinearLayout progressLayout;
+    private ProgressDialog barProgressDialog;
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -123,7 +122,7 @@ public class ComposerCutActivity extends ActivityWithTimeline implements View.On
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        progressBar.setProgress(0);
+
                         updateUI(true);
                     }
                 });
@@ -140,7 +139,7 @@ public class ComposerCutActivity extends ActivityWithTimeline implements View.On
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        progressBar.setProgress((int) (progressBar.getMax() * mediaProgress));
+                        barProgressDialog.setProgress((int) (barProgressDialog.getMax() * mediaProgress));
                     }
                 });
             } catch (Exception e) {
@@ -201,7 +200,7 @@ public class ComposerCutActivity extends ActivityWithTimeline implements View.On
 
         setContentView(R.layout.composer_cut_activity);
 
-        setupUI();
+        setupProgress();
 
         updateUI(false);
 
@@ -211,17 +210,26 @@ public class ComposerCutActivity extends ActivityWithTimeline implements View.On
 
     private void updateUI(boolean inProgress) {
         if (inProgress) {
-            progressLayout.setVisibility(View.VISIBLE);
+            barProgressDialog.setProgress(0);
+            barProgressDialog.show();
         } else {
-            progressLayout.setVisibility(View.INVISIBLE);
+            barProgressDialog.dismiss();
         }
     }
 
-    private void setupUI() {
-        progressLayout = (LinearLayout) findViewById(R.id.progress_layout);
-        progressBar = (ProgressBar) findViewById(R.id.progressBar);
-        progressBar.setMax(100);
-
+    private void setupProgress() {
+        barProgressDialog = new ProgressDialog(ComposerCutActivity.this);
+        barProgressDialog.setCancelable(true);
+        barProgressDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialog) {
+                stopTranscode();
+            }
+        });
+        barProgressDialog.setMessage("We are preparing the file for upload. This can take a while...");
+        barProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+        barProgressDialog.setProgress(0);
+        barProgressDialog.setMax(100);
     }
 
     private void init() {
@@ -232,6 +240,7 @@ public class ComposerCutActivity extends ActivityWithTimeline implements View.On
         ((TextView) findViewById(R.id.action)).setOnClickListener(this);
 
         mItem.onOpen();
+
     }
 
     public void action() {
@@ -323,6 +332,10 @@ public class ComposerCutActivity extends ActivityWithTimeline implements View.On
         }
     }
 
+    public void stopTranscode() {
+        mediaComposer.stop();
+    }
+
     protected void transcode() throws Exception {
 
         factory = new AndroidMediaObjectFactory(getApplicationContext());
@@ -382,27 +395,12 @@ public class ComposerCutActivity extends ActivityWithTimeline implements View.On
     }
 
     private void reportTranscodeDone() {
+        String videoUrl = "file:///" + dstMediaPath;
 
-        String message = "Transcoding finished.";
+        Intent videoIntent = new Intent();
+        videoIntent.putExtra(VIDEO_URI, videoUrl);
+        setResult(RESULT_OK, videoIntent);
 
-        DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener() {
-
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-
-                progressLayout.setVisibility(View.INVISIBLE);
-
-//                View.OnClickListener l = new View.OnClickListener() {
-//
-//                    @Override
-//                    public void onClick(View v) {
-//                        playResult();
-//                    }
-//                };
-
-            }
-        };
-        showMessageBox(message, listener);
     }
 
     @Override
@@ -435,4 +433,9 @@ public class ComposerCutActivity extends ActivityWithTimeline implements View.On
         super.onDestroy();
     }
 
+    @Override
+    public void onBackPressed() {
+        Intent videoIntent = new Intent();
+        setResult(RESULT_CANCELED, videoIntent);
+    }
 }

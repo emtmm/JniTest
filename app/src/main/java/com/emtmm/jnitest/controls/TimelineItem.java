@@ -182,7 +182,7 @@ public class TimelineItem extends RelativeLayout implements RangeSelector.RangeS
 
 
         mSegmentSelector.setStartPosition(0);
-        mSegmentSelector.setEndPosition(duration > 15 ? ((15 * 100) + RangeSelector.HandleSize) / duration : 100);
+        mSegmentSelector.setEndPosition(duration > 30 ? ((30 * 100) + RangeSelector.HandleSize) / duration : 100);
 
         mSegmentSelector.setTime(duration);
 
