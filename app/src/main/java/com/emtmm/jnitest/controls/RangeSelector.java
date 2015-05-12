@@ -35,6 +35,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -231,14 +232,14 @@ public class RangeSelector extends View
                     {
                         if (mHandleToMove.getId() == 0)
                         {
-                            if ((x + getDifSize()) > positionToX(mHandles[1].getPosition()))
+                            if ((x + getMinDifSize()) > positionToX(mHandles[1].getPosition()))
                             {
                                 position = -1;
                             }
                         }
                         else if (mHandleToMove.getId() == 1)
                         {
-                            if ((x - getDifSize()) < positionToX(mHandles[0].getPosition()))
+                            if ((x - getMinDifSize()) < positionToX(mHandles[0].getPosition()))
                             {
                                 position = -1;
                             }
@@ -251,19 +252,29 @@ public class RangeSelector extends View
 
                     if (position != -1)
                     {
-                        mHandleToMove.setPosition(position);
-
-                        if (mEventsListener != null)
-                        {
-                            if (mHandleToMove.getId() == 0)
-                            {
-                                mEventsListener.onStartPositionChanged(position);
+//                        int one = positionToX(mHandles[1].getPosition());
+//                        int cero = positionToX(mHandles[0].getPosition());
+//                        Log.d("varibles to check", "one:" + one + " cero:" + cero + " position:" + position + " maxsize:" + getMaxDifSize());
+                        if (mHandleToMove.getId() == 0) {
+                            if (getMaxDifSize() > ((HandleSize /4) + positionToX(mHandles[1].getPosition()) - positionToX(position))) {
+                                mHandleToMove.setPosition(position);
+                                if (mEventsListener != null)
+                                {
+                                    mEventsListener.onStartPositionChanged(position);
+                                }
                             }
-                            else if (mHandleToMove.getId() == 1)
-                            {
-                                mEventsListener.onEndPositionChanged(position);
+                        } else if (mHandleToMove.getId() == 1) {
+                            if (getMaxDifSize() > ((HandleSize /4) + positionToX(position) - positionToX(mHandles[0].getPosition()))) {
+                                mHandleToMove.setPosition(position);
+                                if (mEventsListener != null)
+                                {
+                                    mEventsListener.onEndPositionChanged(position);
+                                }
                             }
+                        } else {
+                            position = -1;
                         }
+
                     }
                 }
             }
@@ -281,7 +292,11 @@ public class RangeSelector extends View
         return true;
     }
 
-    private int getDifSize() {
+    private int getMaxDifSize() {
+        return positionToX((int) (15*100/time));
+    }
+
+    private int getMinDifSize() {
         return positionToX((int) (3*100/time));
     }
 
